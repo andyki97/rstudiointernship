@@ -1,0 +1,381 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+---
+title: "Tech Appendix: Stats Project Group S"
+author: "Andy Ki, Andrew Sommer, and Severino Tocci"
+date: ''
+output:
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+--
+
+```{r, setup, include=FALSE}
+require(mosaic)   # Load additional packages here 
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+trellis.par.set(theme=theme.mosaic()) # change default color scheme for lattice
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+```
+
+Abstract: 
+This study evaluates the relationship between a set of predictor variables and high school graduation rate. Data was collected from the U.S Census, NCES, and Akamai.  The model included the variables region, internet access, internet speed, and year. Keeping only the significant variables in the model (region and internet access), a multiple linear regression was created.  Both internet access and region were strong standalone variables with no interaction. However, region was found to be the best individual predictor for graduation rate.  
+
+
+Introduction:
+We are in the middle of one of the greatest technological revolutions mankind has ever seen. With the advent of the internet, information can now be accessed at speeds previously unfathomable, and our capacity for learning is expanding daily. People are using the internet as a platform for collaboration, creating educational products that traverse national borders. And we’re only at the beginning: the number of applications available for Android devices in 2009 was 30,000. 8 years later, in 2017 that number is above 3.3 Million (that’s an increase of over 10,000 %). However, in the same time frame, internet access in the United States has only grown by 43%. (Both statistics from https://www.statista.com).
+
+
+Our study set out to examine this seemingly apparent inequality, by determining if academic achievement was related to internet access in the United States. Data was collected on internet access and speeds from all 50 states in the US and the District of Columbia for the years 2007, 2009, 2010 and 2012. States were then stratified into 4 regions based of the US Census’ distribution: North, West, South, and Midwest. We defined academic achievement as high school graduation rate, and tested the effect on grad rate of the following variables : region, internet access, internet speed, and year. 
+
+
+We found that region and internet access were the best predictors of a given state’s grad rate, with increased internet access tending to be associated with a higher grad rate in a given state. 
+
+
+```{r}
+ds <- read.csv("http://pmatheson.people.amherst.edu/GroupSData128.csv")
+
+dsLogIS <- mutate(ds, internetSpeed=log(internetSpeed))
+
+```
+
+&nbsp;
+
+Data:
+The variables in the data set are: region, internet access, internet speed, year, and high school graduation rate.  Region, year, and internet access came from the U.S Census.  Internet speed came from Akamai, and high school graduation rate came from NCES.  Region was split into four groups: Northeast, Midwest, South, and West according to the US Census.  The years included in this study were 2007, 2009, 2010, and 2012.  Internet Access and high school graduation rate were measured in percentages.  Internet speed was measured in kilobytes per second.  The entire population of the United States (according to the census) was measured.  This study therefore found the population parameter rather than the sample statistic. 
+	
+&nbsp;
+
+```{r}
+head(ds)
+```	
+	
+&nbsp; 
+	
+Univariate Analysis:
+We have five variables: two predictors, one response, and one indicator. We performed univariate analysis of the two predictor variables (Internet Access and Internet Speed) in relation to the response variable (high school graduation rate). These three varibles are all quantitative so we plotted density plots and histograms to check the distributions and center and spread. 
+
+&nbsp; 
+
+
+
+&nbsp;
+
+&nbsp;
+
+```{r}
+favstats(~internetAccess, data=ds)
+favstats(~internetSpeed, data=dsLogIS)
+favstats(~gradRate, data=ds)
+
+```
+&nbsp;
+
+&nbsp;
+\newpage 
+
+
+
+&nbsp;
+
+
+
+&nbsp;
+
+&nbsp;
+
+```{r}
+densityplot(~ internetAccess, main="Figure 1A: Density plot of Internet Access in US", data=ds)
+
+histogram(~internetAccess, main="Figure 1B: Histogram of Internet Access in US",data=ds)
+
+favstats(~internetAccess, data=ds)
+
+```
+
+&nbsp;
+
+&nbsp;
+
+1) The histogram and density plots of internet access reveal a unimodal, nonsymmetric, left skewed distribution. Originally the data was mutated due to the skew but no significant difference was found when the data was mutated. Because of the left skew, median and IQR would be the best choice to represent center and spread. Median is .753 and IQR is .10825. 
+
+&nbsp;
+
+&nbsp;
+
+```{r}
+densityplot(~ internetSpeed, main="Figure 2A: Density plot of Internet Speed in US", data=ds)
+
+histogram(~internetSpeed, main="Figure 2B: Histogram of Internet Speed in US",data=ds)
+```
+
+&nbsp;
+
+&nbsp;
+
+We logarithm mutate the variable, internetSpeed to make it more normally distributed.
+
+&nbsp;
+
+&nbsp;
+
+```{r}
+dsLogIS <- mutate(ds, internetSpeed=log(internetSpeed))
+head(dsLogIS)
+```
+
+```{r}
+densityplot(~ internetSpeed, main="Figure 2C: (mutated) Density plot of Internet Speed in US", data=dsLogIS)
+
+histogram(~internetSpeed, main="Figure 2D: (mutated) Histogram of Internet Speed in US",data=dsLogIS)
+
+favstats(~internetSpeed, data=dsLogIS)
+
+```
+
+&nbsp;
+
+2) The histogram and density plots of internet speeds reveal a unimodal, nonsymmetric, highly right skew distribution. Because of the intensity and scale of the skew, the data was mutated. The log of the data was found. This mutation created more symmetric density plots and histograms. The distribution has a slight skew to the left and a plateau at the peak, but this is still normal enough. The symmetry of the data indicates that mean and standard deviation are the best choice to represent the center and spread. The mean of the data is 8.879383 and the standard deviation is 0.4348413. 
+
+&nbsp;
+
+```{r}
+densityplot(~ gradRate, main="Figure 3A: Density plot of HS Grad Rate in US", data=ds)
+
+histogram(~gradRate, main="Figure 3B: Histogram of HS Grad Rate in US",data=ds)
+
+favstats(~gradRate, data=ds)
+```
+
+&nbsp;
+
+3) The histogram and density plot of graduation rates reveal a unimodal, nonsymmetric, left skew distribution. No significance was found when the data was mutated. Therefore, the median and the IQR are the best choice to deal with the skew and represent the center and spread. The median of the data is 0.7825 and the IQR is 0.0855. 
+
+&nbsp;
+
+4) The data has been split into 4 uniform years (2007, 2009, 2011, 2012), among the 50 states. Analyzing only the year will not show much. Also, this is a categorical variable applied equally to all 50 states. Histograms and density plots would show a uniformally distributed block. As a categorical variable we would use the tally function but the output would not give us any useful information. 
+
+&nbsp;
+
+5) Region is also a categorical data. We have uniform amounts of data for the categorical variables. This falls under the same issue as year, where univariate analysis would not render any useful information. 
+
+&nbsp;
+
+Bivariate Analysis  
+
+&nbsp;
+
+```{r}
+lm0<-lm(gradRate~internetAccess, data=dsLogIS)
+summary(lm0)
+
+xyplot(gradRate~internetAccess, main="gradRates x internetAccess",dsLogIS)
+histogram(~residuals(lm0), main="Residuals: gradRates x internetAccess", nint=7,dsLogIS)
+xyplot(resid(lm0)~fitted(lm0), type=c("p","r"),pch=16,main="Residuals: gradRates x internetAccess",dsLogIS)
+```
+
+&nbsp;
+
+We represent the relationship between internet access and graduation rate by creating a linear model (lm0) on the scatterplot of internet access & grad rate. From the scatterplot, there is a positive direction. There is some heteroscedasticity in lower graduation rate values. But, after passing .70 in gradRate, the scatterplot is more homoscedastic. The thinning that occurs in the beginning gives rise to outliers where despite a high internet access rate, there is low graduation rates. The summary of lm0 gives a R squared value of 0.2006. This gives a correlation coefficient of 0.44788. To check the residuals to see if they meet the necessary conditions, we made a histogram of the residuals to see if they were normally distributed along 0, which they were. We also visualized this further by creating a scatterplot of the residuals and checking the homoscedasticity. While the scatterplot of residuals does not show an even fanning out of the errors, it is still passable in that the errors seem randomly separated without patterns.
+
+&nbsp;
+
+
+
+```{r}
+lm1 <- lm(gradRate~internetSpeed, data=dsLogIS)
+
+
+xyplot(gradRate~internetSpeed, main="gradRate x internetSpeed", data = dsLogIS)
+histogram(~residuals(lm1), nint=7, main="Residuals: gradRate x internetSpeed",dsLogIS)
+xyplot(resid(lm1)~fitted(lm1),type=c("p", "r"), pch=16, main="Residuals: gradRate x internetSpeed",dsLogIS)
+```
+
+```{r}
+summary(lm1)
+```
+
+&nbsp;
+
+The relationship between internet speed and graduation rate by creating a linear model (lm1) on the scatterplot of internet speed & grad rate. Note that we are using the logarithm mutated version of internet speeds (dsLogIS). In the scatterplot, there is a straight/slightly positive association between the two variables. Also, there is no strong single stream. The data points in the lower value gradRates are more spread apart than the higher value gradRates. The reasoning for this difference in the density of data points is that most states have higher than .70 grad rates which concentrates the data points to above .70 grad rate in the scatterplot. When checking the residuals of lm1 , we see in the histogram that it is normally distributed along 0. A scatterplot of lm1’s residuals reveals that while it looks normally distributed, the spread of errors are not randomly dispersed. The scatterplot thickens as the x-axis increases and has more density of data points between 8.8 and 9.0 (x-axis). The correlation coefficient is 0.2899, calculated by the given R squared. 
+
+&nbsp;
+
+
+```{r}
+lm3 <- lm(gradRate ~ as.factor(region), ds)
+bwplot(gradRate ~ region, main="gradRates x Region",data=ds)
+histogram(~residuals(lm3), nint=7, main="Residuals: gradRates x Region",dsLogIS)
+xyplot(resid(lm3)~fitted(lm3),main="Grad Rate by Region", pch=16, ylim=c(-.5,.5),type=c("p","r"), dsLogIS)
+summary(lm3)
+```
+
+&nbsp;
+
+By looking at the box and whisker plot we see that region is likely to influence the graduation rate. The greatest differences can be seen from the midwest and Northeast to the South and West. There are many outliers and the west. There is also a very large lower whisker for the South, creating a large IQR. Enough of a difference was seen to run a regression. The residuals were checked and found to be unimodal, relatively normal with a slight skew to the left. The residuals were homoscedastic. By looking at the summary, it was found that although the Northeast was not statistically significant (p=0.359) compared to the Midwest. However, due to the fact that South (p=1.28e-15) and the West (p=8.9e-11) statistically significant, we will still include the variable "region" in our regression. 
+
+&nbsp;
+
+```{r}
+lm4 <- lm(gradRate ~ as.factor(year), dsLogIS)
+bwplot(gradRate ~ as.factor(year), main="gradRates x year",data=dsLogIS)
+xyplot(resid(lm4)~fitted(lm4),main="Grad Rate by Year", pch=16, ylim=c(-.5,.5),type=c("p","r"), dsLogIS)
+histogram(~residuals(lm4), nint=7, main="Residuals: gradRates x year",dsLogIS)
+summary(lm4)
+```
+
+&nbsp;
+
+In the relationship between gradRate and year, we represent this through lm4. We constructed a box whisker plot because year is a categorical/indicator variable. The box whisker plot shows a gradual increase in gradRate as the years increase. However, 2012, despite having the highest box, still has outliers towards the bottom. 2009 and 2010 have these downwards outliers. Looking at the residual scatterplot, we see that there are 4 clusters which represent years. The distance to the center zero line are all even, which shows randomness in the errors. The histogram of the residuals show a somewhat normal distribution with a left skew. Looking at the P values, the change from 2007 to 2009  is insignificant. However, the jumps from 2007-2010 and 2007-2012 are significant according to its P value being lower than .05. 
+
+\newpage
+
+MULTIPLE REGRESSION: 
+
+&nbsp;
+
+Now let's combine all of our variables together to see what they look like in a model. Although a few of the variables, namely *internetSpeed and *year were not significant when run in their respective bivariate analyses (against gradRate), we will see if they have any effect in a model containing all of the variables. 
+
+&nbsp;
+
+```{r}
+#dsLogIS <- read.csv("http://pmatheson.people.amherst.edu/region_csv.csv")
+
+lm2<-lm(gradRate~internetAccess+internetSpeed + as.factor(year) + as.factor(region),dsLogIS)
+summary(lm2)
+```
+
+&nbsp;
+
+As we can see from the summary, the only variables that are significant are: region and internet access, but let's check out some of the residuals of the model to see how good of a fit the model was in general. 
+
+&nbsp;
+
+```{r}
+
+histogram(~residuals(lm2), nint=7,dsLogIS, main='Model 1: Kitchen Sink Multiple Regression')
+xyplot(resid(lm2)~fitted(lm2),type=c("p", "r"), pch=16,dsLogIS, main = 'Model 1: Kitchen Sink Multiple Regression')
+```
+
+&nbsp;
+
+The histogram is nearly normal, although a little left-skewed. The xyplot tells a similar story, with the data being a little heteroscedastic, with more variability on the left side. 
+
+&nbsp;
+
+Now, let's select only our statistically significant values (internetAccess, region) and run a regression with those two.
+
+&nbsp;
+
+```{r}
+lmFinal<-lm(gradRate~internetAccess + as.factor(region), dsLogIS)
+summary(lmFinal)
+
+```
+
+&nbsp;
+
+As we can see, the statistical significance of both is maintained, (in fact, internetAccess is increased). Let's if the model fits better: 
+
+&nbsp;
+
+```{r}
+xyplot(resid(lmFinal)~fitted(lmFinal), main="Model 2: Selective Multiple Regression", pch=16, ylim=c(-.5,.5),type = c("p","r"),dsLogIS)
+histogram(~residuals(lmFinal), nint=7,dsLogIS, main="Model 2: Selective Multiple Regression")
+```
+
+&nbsp;
+
+From the xyplot model, we can see the residual values are fitted much better after removing a few of the variables. Let's take a look at some of the confidence intervals and coefficients 
+
+&nbsp;
+
+
+&nbsp;
+
+So, as we can see, both internetAccess and region can be used to predict gradRate, but which is a better predictor?
+
+&nbsp;
+
+
+For that, we will first check if the terms are interacting by adding an interaction term to 
+
+```{r}
+lmNew<-lm(gradRate~internetAccess + as.factor(region) + internetAccess*as.factor(region), dsLogIS)
+summary(lmNew)
+
+```
+
+&nbsp;
+
+As we can see from the variation in the significance and signs of the coefficients between the two models, there is no clear interaction between internetAccess and Region. As such, we can now compare the R^2 values from the each of the regressions (gradRate by internetAccess), (gradRate by region), and then compare their magnitude to determine which is a better predictor (captures more of the variability of the gradRate)
+
+&nbsp;
+
+
+```{r}
+summary(lm0)$r.squared
+#gradRate by internet Access R^2: 
+```
+
+&nbsp;
+
+```{r}
+summary(lm3)$r.squared
+#gradRate by region R^2: 
+```
+
+&nbsp;
+
+As we can see, Region seems to capture more of the variability (34%) of gradRate than internetAccess (20%), thus we can say region would tend to be a better predictor of gradRate than internetAccess. 
+
+```{r, include=FALSE}
+library(lattice)
+
+panel.labels = function(x,y, col='black', labels = 'x',...)
+{panel.text(x,y,labels,col=col,...)}
+dsLogIS$region = 1 + as.numeric(dsLogIS$region =="Midwest") + as.numeric(dsLogIS$region =="Northeast") + as.numeric(dsLogIS$region =="South") + as.numeric(dsLogIS$region =="West")
+xyplot(gradRate ~ internetAccess, data=dsLogIS, cex = 0.6, panel = panel.labels, labels = paste(dsLogIS$state, dsLogIS$year), col=c('red','blue','green','purple')[dsLogIS$region])
+```
+
+&nbsp;
+
+Is there any interaction between internet access and year (more plainly: does internet access simply correlate / go up with every year?)
+
+```{r}
+lm7 <- lm(gradRate ~ internetAccess + as.factor(year), ds)
+summary(lm7)
+
+lm8 <- lm(gradRate ~ internetAccess + as.factor(year) + internetAccess*as.factor(year), ds)
+summary(lm8)
+
+```
+
+&nbsp; 
+
+Interestingly, the answer to that question is no, as we can see adding an interaction term does not change the significance of any of the other variables, so we can say there is no interaction between the two of them. 
+
+&nbsp; 
+
+Results:
+We found that internet access and region were the best predictors of grad rate in a given state, with region being a strongest of them all. We first ran a (kitchen sink) model that included all of our original variables of interest (internet access, internet speed, region, and year), however we found that internet speed and year did not have a significant relationship with grad rate. Internet speed was only significant at the p=.0851 level, not enough to rule out the relationship being due to chance. This is likely due to the fact that there is a lot of variation in internet speed, and additionally, internet speed is a secondary variable to internet access (you can’t have an internet speed if you don’t internet access). As for year, there was significance found when comparing 2007 to 2012, however we felt that the number of years of data we had was insufficient to really examine this variable as a valid predictor. 
+&nbsp; 
+Finally, we found that between the 2 predictors in our model (internet access and region) region was a more significant predictor as it captured more of the variability in grad rate (from the univariate analysis R2=0.343896  vs internet access’:   R2= 0.2005846). However, because there was no interaction between the two variables, they are both strong standalone predictors of grad rate. 
+&nbsp; 
+
+
+Conclusions:
+The original question asked in this project was: Is Internet use a good predictor of high school graduation rates?  From there, other variables (year, region, and internet speed) and factors were examined as potential predictors for high school graduation rate.  It was found that internet access and region were strong standalone variables that exhibited no interaction between each other. However, region was the best individual predictor for graduation rate.  Region was found to be the best predictor variable because of its higher R2 (when compared in the bivariate regression model to internet access). This indicates that the changes in the regions are highly correlated to changes in graduation rate, while still explaining a lot of the variability in graduation rates.  One major limitation in the study is the broad scope of the predictor variable “Region”.  A region can contain two states that have vast differences.  Despite these differences, the two states are clumped into the same predictor.  Another limitation in the study includes the lack of data, regarding year, from a consistent source was limited.  This prevented a more longitudinal study of year’s role as a predictor.  Because all 50 states were examined, the results cannot be generalized since we are already working with population parameters, instead of a sample statistic. 
+&nbsp; 
