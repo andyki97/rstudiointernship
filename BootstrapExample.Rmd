@@ -1,0 +1,186 @@
+---
+title: "MLR Class Example 8: Bootstrap"
+author: ""
+date: "STAT 230-01. 03/01/2018"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 5
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+
+```{r include=FALSE}
+# Don't delete this chunk if you are using the mosaic package
+# This loads the mosaic and other packages
+require(mosaic)
+```
+
+```{r include=FALSE}
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+# This changes the default colors in lattice plots.
+trellis.par.set(theme=theme.mosaic())  
+
+# knitr settings to control how R chunks work.
+require(knitr)
+opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small"    # slightly smaller font for code
+)
+# This loads the mosaic data sets.  (Could be deleted if you are not using them.)
+require(mosaicData)      
+options(digits=3)
+```
+
+
+```{r, include=FALSE}
+require(Stat2Data)
+data(FirstYearGPA)
+```
+
+
+We'll use the dataset `FirstYearGPA` again in this class example. Recall that previously we determined that `HSGPA` does have a significant relationship with `GPA` when `SATV` and
+`FirstGen` are in the model, using a *randomization test*. But what are **reasonable values** of that coefficient? The randomization test does NOT give us a range of reasonable values - instead, it gave us a range of values that would indicate NO relationship (as we constructed the interval using the simulated "null" distribution). Today, we are going to use the *bootstrap* to obtain so-called **bootstrap CIs** for the coefficient of `HSGPA` for predicting `GPA` when `SATV` and `FirstGen` are in the model.
+
+Let's first fit the model (as we did previously) and find out the actual estimate of the coefficient:   
+
+```{r}
+m2 <- lm(GPA ~ HSGPA + SATV + FirstGen, data = FirstYearGPA)
+#summary(m2)
+coefHSGPA.actual <- coefficients(m2)["HSGPA"]; coefHSGPA.actual
+confint(m2)
+```
+
+As mentioned previous, we would trust these p-values and CIs IF the regression conditions are all met. Assuming that we have some concerns, let’s see what the **bootstrap CIs** can tell us. 
+
+The key idea of **bootstrap** is that the data/sample itself is assumed to be randomly selected from the population, and should closely *resemble the population* (if collected correctly). Thus, we can create many new datasets with the same size by repeatedly sampling from our original dataset **WITH REPLACEMENT**, and construct the distribution of the interested estimate (or test statistic). The bootstrap gives us a non-parametric understanding of the distribution of those estimates. Once again, the advantage to this method is that we can construct meaningful confidence intervals for, say, the slope coefficient of the regression line, without having to assume that the residuals are normally distributed.   
+
+Now, let's create a new sample by sampling entire rows/cases (uniformly at random) _WITH replacement_ from our original data.  
+
+```{r}
+sim1 <- FirstYearGPA[sample(nrow(FirstYearGPA), replace=T), ]
+#sim1 <- FirstYearGPA[resample(1:nrow(FirstYearGPA)), ]  #equivalent to above
+```
+
+`FirstYearGPA[sample(nrow(FirstYearGPA), replace=T), ]` means to take the `FirstYearGPA` dataset and sample it rows with replacement (`replace = T`) until the size of the original dataset is obtained. The comma (,) at the end and bracket pair are showing that we aren't selecting any variable subset from the `firstYearGPA` dataset; we are keeping ALL variables, but sampling the same number of rows with replacement. (This can also be achieved with the `resample()` function; use `?sample` and `?resample` to learn more about these two functions. )   
+
+We'll want to calculate the new estimated coefficient of `HSGPA` on this new simulated dataset.
+
+```{r}
+m.tmp1 <- lm(GPA ~ HSGPA + SATV + FirstGen, data = sim1)
+#summary(m.tmp)
+coefficients(m.tmp1)["HSGPA"]
+```
+
+Let's try it again. 
+
+```{r}
+sim2 <- FirstYearGPA[sample(nrow(FirstYearGPA), replace=T), ]
+m.tmp2 <- lm(GPA ~ HSGPA + SATV + FirstGen, data = sim2)
+#summary(m.tmp)
+coefficients(m.tmp2)["HSGPA"]
+```
+
+QUESTION: Are 2 bootstrap estimates of the slope coefficient for `HSGPA` the same? Are they close to the null value (i.e. 0) or the actual estimated coefficient (i.e. $\widehat{\beta}_{HSGPA} = 0.519$)?
+
+> DISCUSS
+
+\vspace{1cm}
+
+Let's now do this 1000 times.
+
+```{r}
+bootstrap <- do(1000)*lm(GPA ~ HSGPA + SATV + FirstGen, 
+                         data = FirstYearGPA[sample(nrow(FirstYearGPA), replace=T), ])
+names(bootstrap)
+```
+
+What does the distribution of those simulated coefficients look like and where does our actual estimate fall?
+
+```{r, fig.keep='last'}
+densityplot(~ HSGPA, data=bootstrap)
+ladd(panel.abline(v=coefHSGPA.actual, lwd=2, col="red"))
+```
+
+
+This gives us a plot (densityplot) of the slope coefficient for `HSGPA` based on 1000 bootstrap coefficients. In contrast to randomization test results, these are *slopes we WOULD expect to get* (though some values are more common than the others). We can then use this bootstrap distribution to construct CIs. There are in fact 3 methods for constructing bootstrap CIs from the bootstrap sampling distribution of the statistic.    
+
+
+### Method 1: For Normal-ish Distributions
+
+If the distribution is approximately normal (Is this the case? How can we check on this?), we would simply look at a normal distribution for the quantiles/multipliers and then simply build a margin of error around the actual estimate using the bootstrap distribution to obtain the SE.
+
+```{r}
+#xqqmath(~ bootstrap$HSGPA)
+coefHSGPA.actual-qnorm(0.975)*sd(bootstrap$HSGPA)
+coefHSGPA.actual+qnorm(0.975)*sd(bootstrap$HSGPA)
+```
+
+You can adjust to other confident levels by changing the critical value. 
+
+```{r}
+qnorm(0.95)  #z*-multiplier for 90% confidence intervals; 
+             #5% in upper tail + 5% in lower tail would yeild a 90% CI
+```
+
+
+### Method 2: For Symmetric Distributions
+
+If the distribution is roughly symmetric, but not quite normal, then we might stick to the actual 2.5th percentile and 97.5th percentile of the bootstrap distribution. We choose those cutoffs to attain a 95% level.
+
+```{r}
+qdata(bootstrap$HSGPA, c(0.025,0.975))
+```
+
+QUESTION: Think about how you would adjust this to create a 90% bootstrap CI? 
+
+> DISCUSS 
+
+
+
+### Method 3: For Skewed Distributions
+
+For skewed distributions, we need to be extra careful which side of the interval has the larger margin of error. This is a bit more complicated, but we're essentially *reversing* the quantiles. We have to make such an adjustment because our original estimate may already differ from the true population parameter. In this case, we would construct the following interval: (estimate - (upper-estimate), estimate + (estimate-lower)).
+
+```{r}
+q.ul <- qdata(bootstrap$HSGPA, c(0.025,0.975))$quantile
+coefHSGPA.actual - (q.ul[2]- coefHSGPA.actual)
+coefHSGPA.actual + (coefHSGPA.actual - q.ul[1])
+```
+
+Note that if you have a normal distribution, then Methods #1 to #3 will produce intervals that are really close. Similarly, if you have a symmetric distribution, then reversing the quantiles shouldn't really change your interval by a whole lot so both Methods #2 and #3 will work about equally well.  
+
+\vspace{.5cm}
+
+* Bootstrap CIs vs. Permutation CIs 
+
+\vspace{3cm}
+
+
+## For you to try
+
+Note that you can bootstrap statistics besides slopes. For example, correlation coefficients are often bootstrapped in practice, because their sampling distributions are often skewed, more or less.    
+
+```{r, fig.keep='last'}
+bootstrap2 <- do(1000)*cor(GPA ~ SATV, data = FirstYearGPA[sample(nrow(FirstYearGPA), replace=T), ])
+names(bootstrap2)
+cor.actual <- cor(GPA ~ SATV, data=FirstYearGPA); cor.actual
+densityplot(~ cor, data=bootstrap2)
+ladd(panel.abline(v=cor.actual, lwd=2, col="red"))
+```
+
+```{r}
+#Method 3
+cor.q.ul <- qdata(bootstrap2$cor, c(0.025,0.975))$quantile
+cor.actual - (cor.q.ul[2]- cor.actual)
+cor.actual + (cor.actual - cor.q.ul[1])
+```
+
+
+
